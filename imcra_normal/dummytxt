@@ -1,0 +1,2 @@
+Here is the traditional IMCRA algorithm for normal soundwave.
+frameLen = 512; shift_step = 128;
