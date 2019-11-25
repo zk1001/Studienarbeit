@@ -1,0 +1,5 @@
+Here is the core: adapt normal IMCRA algorithm, so that EPbased envelop signals can be input to estimate noise (level)
+or at least be able to tell who's got larger SNR, in each frame.
+
+The ultimate goal is to use such comparison as criteria to decide on the "leadership" of either Cochlear Implant 
+of a binaural system.
