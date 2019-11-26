@@ -10,12 +10,12 @@ function [eta_set] = imcra_EPbased(filename)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Part0:Pre-Settings
 % for window in freq-domain
-f_win_length = 1;                       % apply for adjacent ¡À1 freq-bins
+f_win_length = 1;                       % apply for adjacent Â¡Ã€1 freq-bins
 win_freq = hanning(2*f_win_length+1);   % window for frequency smoothing
 win_freq = win_freq / sum(win_freq); 
 
 % default according to IMCRA, Cohen2003
-alpha_eta = 0.92;   % for estimated a-post SNR,[eq32]£¬eta stands for ¡®xi¡¯
+alpha_eta = 0.92;   % for estimated a-post SNR,[eq32]Â£Â¬eta stands for Â¡Â®xiÂ¡Â¯
 alpha_s = 0.9;      % for 1st iteration of noise power spectrum S(k,l), [eq14,15]
 alpha_d = 0.85;     % for recursively averaged past spectral values of
 beta = 2;           % noise estimation for frmae l+1, [eq8-13]
@@ -45,8 +45,12 @@ envPow = inverseLGF(EPsig.mat).^2;  % inverse EP signals to envelop amplitude of
 frame_i = 1;
 [spec_len, frame_num] = size(envPow);
 
-% store SNR for each frame, output
-eta_set = [];
+% store noise level (in division, in SNR)
+% store speech-pres-prob 
+% for each frame & N freq-bands
+eta_set_div = [];
+eta_set_log = [];
+phat_set = [];
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Part2:Loop through all frames
@@ -170,7 +174,7 @@ while(frame_i < frame_num)
         if l_mod_lswitch==Vwin  % reinitiate every Vwin frames 
             l_mod_lswitch = 0;
 
-            % initiation within first V frame, criterium£º1st pnt of (V+1) frame
+            % initiation within first V frame, criteriumÂ£Âº1st pnt of (V+1) frame
             if frame_i == Vwin
                 SW=repmat(S,1,Nwin);
                 SWt=repmat(St,1,Nwin);
@@ -193,11 +197,13 @@ while(frame_i < frame_num)
         end  
     end
 
+frame_i = frame_i +1;
 
 % output
-eta_set = [eta_set 10*log(eta)];
+eta_set_div = [eta_set_div eta];
+eta_set_log = [eta_set_log 10*log(eta)];
+phat_set = [phat_set phat];
 
-frame_i = frame_i +1;
 
 end
 
