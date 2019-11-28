@@ -46,7 +46,7 @@ win_freq = win_freq / sum(win_freq);
 alpha_eta = 0.92;   % for estimated a-post SNR,[eq32]£¬eta stands for ¡®xi¡¯
 alpha_s = 0.9;      % for 1st iteration of noise power spectrum S(k,l), [eq14,15]
 alpha_d = 0.85;     % for recursively averaged past spectral values of
-beta = 2.0;           % noise estimation for frmae l+1, [eq8-13]
+beta = 1.1;           % noise estimation for frmae l+1, [eq8-13]
 
 eta_min = 10e-6;
 GH0 = eta_min;    % Gain function initialize for speech-absence, it's not for noise estimation part
