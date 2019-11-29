@@ -33,7 +33,7 @@ for i = 1:20
     % std similar
     [r, yin, yout] = imcra_SWbased(filename);
     SNR2 = [SNR2; r];
-    
+     
     if 10<i && i<=15
         k = i-10;
         subplot(5,1,k)
