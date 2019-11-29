@@ -1,8 +1,8 @@
 %function [eta_set_div, eta_set_log, phat_set] = imcra_SWbased(yinFile)
 %function [r, y_in_time, y_out_time] = imcra_SWbased(yinFile)
 %read in files and initilization   
-addpath('D:\Stud\Studienarbeit\TestFiles\SpeechMaterial\0')
-yinFile = 'HSMm0103_snr=0.wav';
+addpath('D:\Stud\Studienarbeit\TestFiles\SpeechMaterial\3')
+yinFile = 'HSMm0103_snr=3.wav';
 eta_set_log = [];
 eta_set_div = [];
 phat_set = [];
@@ -38,12 +38,12 @@ Cwin = sum(win.^2) ^ 0.5;
 win = win / Cwin;
 
 % for window in freq-domain
-f_win_length = 1;                       % apply for adjacent ¡À1 freq-bins
+f_win_length = 1;                       % apply for adjacent ±1 freq-bins
 win_freq = hanning(2*f_win_length+1);   % window for frequency smoothing
 win_freq = win_freq / sum(win_freq); 
 
 % default according to IMCRA, Cohen2003
-alpha_eta = 0.92;   % for estimated a-post SNR,[eq32]£¬eta stands for ¡®xi¡¯
+alpha_eta = 0.92;   % for estimated a-post SNR,[eq32]，eta stands for ‘xi’
 alpha_s = 0.9;      % for 1st iteration of noise power spectrum S(k,l), [eq14,15]
 alpha_d = 0.85;     % for recursively averaged past spectral values of
 beta = 1.1;           % noise estimation for frmae l+1, [eq8-13]
@@ -63,7 +63,7 @@ Nwin = 8;
 % while
 %     
 %     if l==1: 
-%         part1(eta£¿) + part5 still count+1
+%         part1(eta？) + part5 still count+1
 %     else
 %         part2~ part5
 %     end
@@ -190,7 +190,7 @@ while (loop_i+frame_length < data_length)
         if l_mod_lswitch==Vwin  % reinitiate every Vwin frames 
             l_mod_lswitch = 0;
 
-            % initiation within first V frame, criterium£º1st pnt of (V+1) frame
+            % initiation within first V frame, criterium：1st pnt of (V+1) frame
             if loop_i == (Vwin-1) * frame_move + 1 + frame_overlap 
                 SW=repmat(S,1,Nwin);
                 SWt=repmat(St,1,Nwin);
@@ -239,7 +239,7 @@ while (loop_i+frame_length < data_length)
     end
     phat_set = [phat_set phat];
     eta_set_div = [eta_set_div eta];
-    eta_set_log = [eta_set_log 10*log(eta)];   
+    eta_set_log = [eta_set_log 10*log10(eta)];   
     
 end
 warning off
@@ -252,7 +252,7 @@ r = getsnr(y_out_time, noise)
 %end
 
 % %%%%%%%%%%%%%%%%%% SSNRA calculation!%%%%%%%%%%%%%%%
-% [ssnra_set, vset] = SegSNR(eta_set_div, phat_set);
+[ssnra_set, vset] = SegSNR(eta_set_div, phat_set);
 % figure;
 % % True SNR using 10*log(X/N) with 0dB line
 % subplot(2,1,1)
