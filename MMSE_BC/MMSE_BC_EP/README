@@ -1,0 +1,6 @@
+Instead of normal soundwave(SW) signals, the input here are envelop power derived inversly from EP signals (only 8 channels).
+
+The results demonstrate similar pattern just like the results from SW, 
+but with a minor issue with systematic error(underestimated bias).
+This results mainly from the hyper-parameter, i.e. gain function set experimentally for SW input. 
+Therefore some adjustments on the choices of gain should be considered in the later process.
