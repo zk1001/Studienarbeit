@@ -1,4 +1,4 @@
-function [SNR_set, noisePowMat] = MMSE_SSP_SW(noisy,fs)
+function [SNR_set, noisePowMat] = mmse_spp_audio(noisy)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%% propose SPP algorithm to estimate the spectral noise power
 %%%% papers: "Unbiased MMSE-Based Noise Power Estimation with Low Complexity and Low Tracking Delay", IEEE TASL, 2012 
@@ -46,17 +46,17 @@ function [SNR_set, noisePowMat] = MMSE_SSP_SW(noisy,fs)
 
 
 %% some constants
-frLen   = 32e-3*fs;  % frame size
+% frLen = 512; % Original Setting
+frLen   = 256;  % frame size
 fShift  = frLen/2;   % fShift size
 nFrames = floor(length(noisy)/fShift)-1; % number of frames
-
+N_eff = frLen/2+1;
 anWin  = hanning(frLen,'periodic'); %analysis window
 
 %% initialize
-noisePowMat = zeros(frLen/2+1,nFrames); % allocate memory
+noisePowMat = zeros(N_eff,nFrames); % allocate memory
 noisePow = init_noise_tracker_ideal_vad(noisy,frLen,frLen,fShift, anWin); % This function computes the initial noise PSD estimate. It is assumed that the first 5 time-frames are noise-only.
 noisePowMat(:,1)=noisePow;
-
 
 %
 PH1mean  = 0.5;
@@ -79,8 +79,9 @@ for indFr = 1:nFrames
     indices       = (indFr-1)*fShift+1:(indFr-1)*fShift+frLen;
     noisy_frame   = anWin.*noisy(indices);
     noisyDftFrame = fft(noisy_frame,frLen);
-    noisyDftFrame = noisyDftFrame(1:frLen/2+1);
+    noisyDftFrame = noisyDftFrame(1:N_eff);
 	
+    % noisy power
     noisyPer = noisyDftFrame.*conj(noisyDftFrame);
     snrPost1 =  noisyPer./(noisePow);% a posteriori SNR based on old noise power estimate
 
