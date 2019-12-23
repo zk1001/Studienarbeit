@@ -1,15 +1,24 @@
 %function [eta_set_div, eta_set_log, phat_set] = imcra_SWbased(yinFile)
 %function [r, y_in_time, y_out_time] = imcra_SWbased(yinFile)
+function [SNR_set] = imcra_SWbased(y_in_time)
 %read in files and initilization   
-addpath('D:\Stud\Studienarbeit\TestFiles\SpeechMaterial\3')
-yinFile = 'HSMm0103_snr=3.wav';
+% addpath('D:\Stud\Studienarbeit\TestFiles\SpeechMaterial\2')
+% yinFile = 'HSMm0103_snr=2.wav';
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Testing set
 eta_set_log = [];
 eta_set_div = [];
 phat_set = [];
+Ya2_set = [];
+S_set = [];
 
-[y_in_orig, fs0] = audioread(yinFile);
-fs = 16e3;
-y_in_time = resample(y_in_orig, fs, fs0);
+lambda_d_t_set = [];% for SNR_set
+Xpow_set =[];       % for SNR_set
+SNR_set = [];       
+VAD = [];           % for SegSNR
+
+% [y_in_orig, fs0] = audioread(yinFile);
+% fs = 16e3;
+% y_in_time = resample(y_in_orig, fs, fs0);
 data_length = size(y_in_time, 1);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Pre-setting
 % Frame setting
@@ -72,9 +81,8 @@ Nwin = 8;
 %
 % end 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Ya2_set = [];
-S_set = [];
-lambda_d_t_set = [];
+
+
 while (loop_i+frame_length < data_length)
     
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Part0: input
@@ -86,9 +94,9 @@ while (loop_i+frame_length < data_length)
         frame_in = [frame_in(frame_move+1:end); y_in_time(loop_i:loop_i+frame_move-1)];
     end
     frame_out = [frame_out(frame_move+1:end); zeros(frame_move,1)];
-    Y = fft(frame_in.*win);     
-    Ya2 = abs(Y(1:N_eff)) .^ 2;     % spec estimation using single frame info.
-    Sf = conv(Ya2,win_freq,'same');       % frequency smoothing 
+    Y = fft(frame_in.*win, frame_length);     
+    Ya2 = abs(Y(1:N_eff)) .^ 2 / frame_length;     % spec estimation using single frame info.
+    Sf = conv(Ya2, win_freq, 'same');       % frequency smoothing 
     Ya2_set = [Ya2_set sum(Ya2)];
     
     qhat = ones(N_eff, 1);  % [eq29] speech absence probability
@@ -100,6 +108,7 @@ while (loop_i+frame_length < data_length)
         lambda_d_t = Ya2;     % modified expected noise spec
         gamma = ones(N_eff,1);          % instant SNR estimation
         eta = gamma;        % not necessary, because GH1 has already been initialized
+        Xpow = eps;
         
         Smin = Sf;          % noise estimation spec value
         S = Sf;             % spec after time smoothing
@@ -108,8 +117,8 @@ while (loop_i+frame_length < data_length)
         Smint = Sf;         % min value get from St
         Smin_sw = Sf;       % auxiliary variable for finding min
         Smint_sw = Sf;
-        
         S_set = [S_set sum(S)];
+        
         
         l_mod_lswitch = l_mod_lswitch + 1; 
         
@@ -183,7 +192,9 @@ while (loop_i+frame_length < data_length)
         % update noise sepc estimation "lambda_d_t" with [eq10,12]
         lambda_d_bar = alpha_d_t .* lambda_d_bar + (1-alpha_d_t) .* Ya2;  % [eq10]  
         lambda_d_t = lambda_d_bar * beta;                       % [eq12]
-        lambda_d_t_set = [lambda_d_t_set lambda_d_t];
+        
+        
+        Xpow = sum(Ya2) - sum(lambda_d_t);  % Speech power estimate
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Part5: subwindows compare and store
         % update subwindows(U*V)
         l_mod_lswitch = l_mod_lswitch + 1;
@@ -214,11 +225,11 @@ while (loop_i+frame_length < data_length)
             
         % adapative subwindow minimum tracking
         end
-        
+    
     % if:initialize everything + else:normal update
     end
         
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Part6: output
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Part6: output
 
     G = GH1 .^ phat .* GH0 .^ (1-phat); % Gain from Wiener fitler
     X = [zeros(3,1); G(4:N_eff-1) .* Y(4:N_eff-1); 0];  % fft_output, len=N_eff
@@ -237,36 +248,31 @@ while (loop_i+frame_length < data_length)
         y_out_time(loop_i-frame_overlap: loop_i+frame_move-1-frame_overlap) = frame_out(1:frame_move);
         loop_i = loop_i + frame_move;
     end
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Part7: All Updates (for test)
+    % Update speech-pres-prob; eta of all freq-bins
+    lambda_d_t_set = [lambda_d_t_set lambda_d_t];
+    tempVAD = sum(mean(phat)>0.5) >= 1;
+    VAD = [VAD tempVAD];
     phat_set = [phat_set phat];
-    eta_set_div = [eta_set_div eta];
-    eta_set_log = [eta_set_log 10*log10(eta)];   
+%     eta_set_div = [eta_set_div eta]; 改用 SNR_set
+     
+    Xpow_set = [Xpow_set Xpow];
+    % Update SNR estimate based on additiv property
+    SNR = 10*log10( max(eps,(Xpow/sum(lambda_d_t))) );
+    SNR_set = [SNR_set SNR];
     
 end
-warning off
-audiowrite('example_out.wav', y_out_time, fs);
+% eta_set_log = 10*log10(eta_set_div); 
+% warning off
+% audiowrite('example_out.wav', y_out_time, fs);
 
 % snr calculation
-noise = y_out_time - y_in_time;
-r = getsnr(y_out_time, noise)
+% noise = y_out_time - y_in_time;
+% r = getsnr(y_out_time, noise)
 
-%end
-
+end
 % %%%%%%%%%%%%%%%%%% SSNRA calculation!%%%%%%%%%%%%%%%
-[ssnra_set, vset] = SegSNR(eta_set_div, phat_set);
-% figure;
-% % True SNR using 10*log(X/N) with 0dB line
-% subplot(2,1,1)
-% hold on
-% plot(zeros(size(eta_set_log,2),1));
-% plot(sum(eta_set_log)); 
-% title('10*log(X/N)')
-% hold off
-% 
-% % Division of power (X/N) with Speech Presence Probability
-% subplot(2,1,2)
-% hold on
-% plot(sum(eta_set_div)); 
-% plot(sum(phat_set))
-% title('X/N and Speech-Presence-Probability')
-% hold off
+% [ssnra_channel, vset] = SegSNR_channel(eta_set_div, phat_set);
+%ssnra = SegSNR(Xpow_set, lambda_d_t_set, VAD)
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
