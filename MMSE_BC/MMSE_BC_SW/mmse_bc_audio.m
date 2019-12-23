@@ -1,4 +1,5 @@
-function [snrs, shat, noise_psd_matrix,T]=noise_psd_tracker(noisy,fs)
+function [SNR2_set, shat, noise_psd_matrix,T] = mmse_bc_audio(noisy,fs)
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%This m-file containes an implementation of the noise PSD tracker
 %%%%presented in the article: "MMSE BASED NOISE PSD TRACKING WITH LOW COMPLEXITY", by R. C.  Hendriks, R. Heusdens and J. Jensen published at the
@@ -16,11 +17,7 @@ function [snrs, shat, noise_psd_matrix,T]=noise_psd_tracker(noisy,fs)
 %%%%%%%%%%%%%%%%%%%%% update 14-11-2011: tabulatede special function to
 %%%%%%%%%%%%%%%%%%%%% speed up computations.
 
-
-%%
-
-
-%% Initialisation
+% Initialisation
 MIN_GAIN =eps;
 gamma=1;
 nu=0.6;
@@ -43,11 +40,12 @@ nu=0.6;
 
 ALPHA= 0.98; % smoothing factor used in the decision directed approach
 SNR_LOW_LIM = eps;
-frLen  = 256*fs/8000;
+% frLen  = 256*fs/8000;   % what about just 256 ?????
+frLen  = 256;
 fShift   = frLen/2; 
 nFrames =  floor((length(noisy) - 2*frLen)/fShift );
-
-anWin  = sqrt(hanning(frLen )); % ?
+N_eff = frLen/2+1;
+anWin  = sqrt(hanning(frLen )); % ? square-root hann window
 synWin = sqrt(hanning(frLen )); % ?
 
 clean_est_dft_frame=[];
@@ -59,11 +57,13 @@ shat = zeros(size(noisy));    % clean speech container
 noise_psd = init_noise_tracker_ideal_vad( noisy,frLen,fft_size,fShift, anWin ); 
 
 min_mat = zeros( fft_size/2+1,floor(0.8*fs/fShift) );   % ?
-noise_psd_matrix = zeros(frLen/2+1,nFrames);
+noise_psd_matrix = zeros(N_eff,nFrames);
 Rprior=-40:1:100;% dB
 [tabel_inc_gamma ]=tab_inc_gamma(Rprior,2);
 
-snrs = [];
+SNR1_set = [];
+SNR2_set = [];
+SNR3_set = [];
 %%%%%%%%%%%%%% Main Algorithm
 tic
 for indFr=1:nFrames
@@ -71,10 +71,10 @@ for indFr=1:nFrames
     % get all point indices of each frame
     % cut out targeted frame, windowed and fft
     % get the DFT co-efs within Nyquist freq-bins
-    indices = (indFr-1)*fShift+1:(indFr-1)*fShift+frLen;   
+    indices = (indFr-1)*fShift + 1:(indFr-1)*fShift + frLen;   
     noisy_frame = anWin.*noisy(indices);
     noisyDftFrame = fft(noisy_frame,frLen);
-    noisyDftFrame = noisyDftFrame(1:frLen/2+1);
+    noisyDftFrame = noisyDftFrame(1:N_eff);
     
     % Power of estimated dft of Noisy & CleanSpeech
     noisy_dft_frame_p = abs(noisyDftFrame).^2;
@@ -88,25 +88,38 @@ for indFr=1:nFrames
     % noise PSD estimation with Bias Compensation (BC)
     [noise_psd] = noise_psdest_tab1(noisy_dft_frame_p, indFr, speech_psd, noise_psd, tabel_inc_gamma);
     
-    % Noise PSD
+    % Noise PSD through safety net
     min_mat = [ min_mat(:,end-floor(0.8*fs/fShift)+2:end), noisy_dft_frame_p(1:fft_size/2+1) ];
     noise_psd = max(noise_psd,min(min_mat,[],2));
     
     % unbiased SNRs
-    [temp, a_post_snr,a_priori_snr] = estimate_snrs(noisy_dft_frame_p,fft_size, noise_psd,SNR_LOW_LIM,  ALPHA   ,indFr,clean_est_dft_frame_pow)   ;
+    [a_post_snr, a_priori_snr, total_prior_snr] = estimate_snrs(noisy_dft_frame_p,...
+        fft_size, noise_psd,SNR_LOW_LIM,  ALPHA, indFr, clean_est_dft_frame_pow);
     [gain]= lookup_gain_in_table(g_mag,a_post_snr,a_priori_snr,-40:1:50,-40:1:50,1);
     gain = max(gain,MIN_GAIN);
     
     noise_psd_matrix(:,indFr) = noise_psd;
-    noise_pow = sum(noise_psd.^2);
+    noise_pow = sum(abs(noise_psd).^2);
     
     % Clean Speech 
     clean_est_dft_frame = gain .* noisyDftFrame(1:fft_size/2+1);
     clean_est_time = synWin.*real(ifft( [clean_est_dft_frame; flipud(conj(clean_est_dft_frame(2:end-1)))]));
     shat(indices) = shat(indices) + clean_est_time;
+
+% % 方法1：直接使用 clean estimate
+%     clean_pow = sum(abs(clean_est_dft_frame).^2);
+%     SNR1 = 10*log10((clean_pow/noise_pow));
+%     SNR1_set = [SNR1_set SNR];
     
-%     clean_pow = sum(clean_freq.^2);
-    clean_pow = sum(abs(clean_est_time).^2);
-    snrs = [snrs 10*log10(sum(temp))];
+% 方法2：clean = noisy - noise
+    noisy_p = sum(noisy_dft_frame_p);
+    clean_p = max((noisy_p-noise_pow), eps);
+    SNR2 = 10*log10(clean_p/noise_pow);
+    SNR2_set = [SNR2_set SNR2];
+    
+% % 方法3:直接使用 estimate_snrs函数计算
+%     SNR3_set  = [SNR3_set total_prior_snr];
 end
 T=toc;
+
+end
