@@ -1,45 +1,36 @@
+% This Script do a batch test for MMSE_BC_SW algorithm
+% Speech: HSMm0103
+% SNR: 0~9
+% Noise type: CCITT
 
-
-%%
-addpath('D:\Stud\Studienarbeit\TestFiles\SpeechMaterial\0')
-[data,fs] = audioread('HSMm0103');
-len = length(data);
-frLen  = 256*fs/8000;
-fShift   = frLen/2; 
-nFrames =  floor((length(noisy) - 2*frLen)/fShift );
-SNR = [];
-anWin  = sqrt(hanning(frLen ));
-
-for i = 0:10
+%% official batch test
+estSNR_set = [];
+for i = 0:9
     yinpath = strcat('D:\Stud\Studienarbeit\TestFiles\SpeechMaterial\',num2str(i));
     addpath(yinpath)
-    yinfile = strcat('HSMm0103_snr=',num2str(i),'.wav');
+    yinfile = strcat('HSMm0103','_snr=',num2str(i),'.wav');
     [noisy,fs] = audioread(yinfile);
     
-    [snrs, shat, noise_psd_matrix,T]=noise_psd_tracker(noisy,fs);
+    [estSNR, ~, noise_psd_matrix, ~] = mmse_bc_audio(noisy,fs);
     
-    shat_pow_set = [];
-    noise_pow_set = [];
-    for indFr=1:nFrames
-        indices = (indFr-1)*fShift + 1:(indFr-1)*fShift+frLen;   
-        noisy_frame = anWin.*noisy(indices);
-        shat_frame = anWin.*shat(indices);
-        
-        shat_pow_set = [shat_pow_set; sum((shat_frame).^2)];
-        noise_pow_set = [noise_pow_set; sum((noisy_frame - shat_frame).^2)];
-    end
-    SNR = [SNR 10*log10(shat_pow_set ./ noise_pow_set)];
-    hold on 
+    estSNR_set = [estSNR_set; estSNR];
     
 end
-%%
+%% Plotting
 figure;
 for j = 1:2:5
     hold on
-    plot(SNR(:,j))
+    plot(estSNR_set(j,:)) 
 end
-plot(zeros(159,1))
-legend('1','3','5')
+plot(zeros(size(estSNR_set,1),1))
+
+ylabel('SNR(dB)')
+xlabel('Frames')
+ylim([-10,10])
+title('SW\_MMSE\_BC\_SNR\_1v3v5, "CCITT"')
+legend('realSNR=1dB','3dB','5dB','0\_base')
 hold off
+
+
 
 
