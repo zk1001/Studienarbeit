@@ -1,4 +1,4 @@
-function [SNR2_set, shat, noise_psd_matrix,T] = mmse_bc_audio(noisy,fs)
+function [SNR_set, shat, noise_psd_matrix,T] = mmse_bc_audio(noisy,fs)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%This m-file containes an implementation of the noise PSD tracker
@@ -17,11 +17,16 @@ function [SNR2_set, shat, noise_psd_matrix,T] = mmse_bc_audio(noisy,fs)
 %%%%%%%%%%%%%%%%%%%%% update 14-11-2011: tabulatede special function to
 %%%%%%%%%%%%%%%%%%%%% speed up computations.
 
+% Testing
+% addpath('D:\Stud\Studienarbeit\TestFiles\SpeechMaterial\5')
+% [noisy, fs] = audioread('HSMm0103_snr=5.wav');
+
 % Initialisation
-MIN_GAIN =eps;
-gamma=1;
-nu=0.6;
-[g_dft,g_mag,g_mag2]=Tabulate_gain_functions(gamma,nu); %% tabulate the gain function used later on
+addpath('TabGenGam')
+MIN_GAIN = eps;
+gamma = 1;
+nu = 0.6;
+[g_dft,g_mag,g_mag2] = Tabulate_gain_functions(gamma,nu); %% tabulate the gain function used later on
 %%%%%%%%%%%%%
 %The tabulated gain functions compute the estimator based on the papers published in
 %
@@ -61,9 +66,8 @@ noise_psd_matrix = zeros(N_eff,nFrames);
 Rprior=-40:1:100;% dB
 [tabel_inc_gamma ]=tab_inc_gamma(Rprior,2);
 
-SNR1_set = [];
-SNR2_set = [];
-SNR3_set = [];
+
+SNR_set = [];
 %%%%%%%%%%%%%% Main Algorithm
 tic
 for indFr=1:nFrames
@@ -99,26 +103,22 @@ for indFr=1:nFrames
     gain = max(gain,MIN_GAIN);
     
     noise_psd_matrix(:,indFr) = noise_psd;
-    noise_pow = sum(abs(noise_psd).^2);
+    noise_pow = sum(noise_psd);
     
     % Clean Speech 
     clean_est_dft_frame = gain .* noisyDftFrame(1:fft_size/2+1);
     clean_est_time = synWin.*real(ifft( [clean_est_dft_frame; flipud(conj(clean_est_dft_frame(2:end-1)))]));
     shat(indices) = shat(indices) + clean_est_time;
 
-% % 方法1：直接使用 clean estimate
-%     clean_pow = sum(abs(clean_est_dft_frame).^2);
-%     SNR1 = 10*log10((clean_pow/noise_pow));
-%     SNR1_set = [SNR1_set SNR];
     
-% 方法2：clean = noisy - noise
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % SNR calculation
     noisy_p = sum(noisy_dft_frame_p);
-    clean_p = max((noisy_p-noise_pow), eps);
-    SNR2 = 10*log10(clean_p/noise_pow);
-    SNR2_set = [SNR2_set SNR2];
+    clean_p = max((noisy_p - noise_pow), eps);
+    instSNR = 10*log10(clean_p/noise_pow);
+    SNR_set = [SNR_set instSNR];
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-% % 方法3:直接使用 estimate_snrs函数计算
-%     SNR3_set  = [SNR3_set total_prior_snr];
 end
 T=toc;
 
