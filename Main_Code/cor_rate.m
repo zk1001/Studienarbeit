@@ -1,5 +1,9 @@
 function [correct_rate] = cor_rate(effSNR_true, effSNR_esti)
 
+% input: ground truth(GT) and estimation(EST) SNR sets
+% output: correct rate of "which side is bigger", i.e.
+% ignore the actual values, just decide the bigger/smaller side
+
 % compare left and right in GT
 lr_diff_true = effSNR_true(1,:) > effSNR_true(2,:);
 idx_l_true = (lr_diff_true >0);
