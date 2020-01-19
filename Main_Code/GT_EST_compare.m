@@ -28,7 +28,7 @@ d_in = d_;
 % [estSNR_set,~] = mmse_spp_audio(y_in'); %single-channel
 trueSNR_set = GT_stereo(x_in, d_in, 'mmse_spp');
 for i = [1,2]
-    [estSNR_set(i,:),~] = mmse_spp_audio(y_in(i,:)');
+    [estSNR_set(i,:),~] = mmse_spp_audio(y_in(i,:)', fs);
 end
 
 % Plotting Ground Truth of respective ears
