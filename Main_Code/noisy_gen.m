@@ -49,9 +49,11 @@ noise = resample(noise,fs1,fs2);
 %% normal noisy sound, i.e. no stereo(HRTR) is needed
 if nargin == 3
     [d_out, noisy] = add_noise(speech, noise, snr);
-    noisy = noisy / max(abs(noisy));
-    x_out = speech / max(abs(noisy));
-    d_out = d_out / max(abs(noisy));
+    
+    % Normalization in case the amplitude > 1.0
+    noisy = noisy' / max(abs(noisy));
+    x_out = speech' / max(abs(noisy));
+    d_out = d_out' / max(abs(noisy));
     fs0 = fs1;
 %% HRTR stereo generatoin
 % default setting: 
@@ -83,11 +85,14 @@ elseif nargin == 5
     % mixture of speech and noise by each ear
     noisy(1,:) = noise_out(1,:) + speech_out(1,:);
     noisy(2,:) = noise_out(2,:) + speech_out(2,:);
-%     % Normalization, in case the maximum value > 1
+%   % Normalization, in case the maximum value > 1.0
+    % but the HRTR results are very small, unlikely to be > 1.0
+    % so no normalization for now
 %     noisy(1,:) = noisy(1,:) / max(abs(noisy(1,:)));
 %     noisy(2,:) = noisy(2,:) / max(abs(noisy(2,:)));
     
     % clean and noise for calculating ground truth
+%     noisy = noisy';
     x_out = speech_out;
     d_out = noise_out;
     
