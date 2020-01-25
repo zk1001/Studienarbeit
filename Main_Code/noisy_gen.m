@@ -1,17 +1,20 @@
-function [x_out, d_out, noisy, fs0] = noisy_gen(snr, speech_name, noise_type, ...
+function [x_out, d_out, noisy, fs0] = temp_noisy_gen(snr, speech_name, noise_type, ...
     speech_angle, noise_angle)
+% BASIC function mix HSM/SQAM/TIMIT clean speech with various noise types
 % noisy = NOISY_GEN(*) is for noisy speech generation
-% BASIC inputs: 1.desired SNR;2.the name of speech file; 3.the noise type
-% BASIC function is based on HSM/SQAM clean speech and various noise types
-% default setting for BASIC: HSMm0103/ SQAM_49
-% ADDITIONAL inputs: angles of speech and noise, for simplicity the choices
-% are [-90,-45,0,45,90]
+% BASIC inputs: 
+%   1.desired SNR;
+%   2.the name of speech file; 
+%   3.the noise type.
+%
 % ADDITIONAL function: using HRTR to create stereo sounds in respective
 % ears.
-
+% ADDITIONAL inputs: angles of speech and noise, 
+% for simplicity the choices are [-90,-45,0,45,90]
+%
 % DEMO Usage:
-% BASIC: [speech, noise, noisy, fs] = noisy_gen(3,'HSM','CCITT');
-% ADDITIONal: [speech, noise, noisy, fs] = noisy_gen(3,'HSM','CCITT', 90, 45)
+% BASIC: [speech, noise, noisy, fs] = noisy_gen(3,'HSMm0103','CCITT');
+% ADDITIONal: [speech, noise, noisy, fs] = noisy_gen(3,'SQAM49','CCITT', 90, 45)
 %% BASIC
 % at least 3 inputs
 if nargin < 3
@@ -19,22 +22,36 @@ if nargin < 3
 end
 
 % get clean speech file
-%!!! for testing, ONLY 1 SOUNDTRACk is extracted!!
-speech_path = strcat('D:\Stud\Studienarbeit\TestFiles\Source\',speech_name);
-addpath(speech_path)
-
-if strcmp(speech_name, 'HSM')
-    speech_name = strcat(speech_name,'m0103.wav');
+if contains(speech_name,'HSM')
+    addpath('D:\Stud\Studienarbeit\TestFiles\Source\HSM')
+    speech_name = strcat(speech_name,'.wav');
+elseif contains(speech_name,'SQAM')
+    addpath('D:\Stud\Studienarbeit\TestFiles\Source\SQAM')
+    speech_name = strcat(speech_name,'.flac');
+% elseif contains(speech_name,'TIMIT')
+%     addpath('D:\Stud\Studienarbeit\TestFiles\Source\TIMIT')
+%     speech_name = strcat(speech_name,'.flac');
 else
-    speech_name = '49.flac';
+    error('speech files must come from HSM, SQAM or TIMIT sources')
 end
+
+%%%%%%!!! for testing, ONLY 1 SOUNDTRACk is extracted!!
+% speech_path = strcat('D:\Stud\Studienarbeit\TestFiles\Source\',speech_name);
+% addpath(speech_path)
+% 
+% if strcmp(speech_name, 'HSM')
+%     speech_name = strcat(speech_name,'m0103.wav');
+% else
+%     speech_name = '49.flac';
+% end
+%%%%%
 
 % Read normalize speech file
 [speech,fs1] = audioread(speech_name);
-speech = speech/max(abs(speech));
 if size(speech,2) > 1
     speech = speech(:,1);
 end
+speech = speech/max(abs(speech));
 
 % get noise file
 addpath('D:\Stud\Studienarbeit\TestFiles\Noise')
@@ -95,7 +112,12 @@ elseif nargin == 5
 %     noisy = noisy';
     x_out = speech_out;
     d_out = noise_out;
-    
+    norm_factor = max(abs(noisy),[],2);
+    for i = 1:size(noisy,1)
+        noisy(i,:) = noisy(i,:) / norm_factor(i);
+        x_out(i,:) = x_out(i,:) / norm_factor(i);
+        d_out(i,:) = d_out(i,:) / norm_factor(i);
+    end    
 else
     error('3 inputs for simple audio OR 5 inputs for stereo audio')
 end
