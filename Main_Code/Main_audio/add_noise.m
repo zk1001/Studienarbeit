@@ -5,6 +5,10 @@ function [noise, noisy] = add_noise(speech, noise, snr)
 % - speech & noisem import by 'audioread' already
 % - desired snr
 % NOTE: fs of speech and noise should be syncrhonized before input
+
+if size(noise,1) < 3
+    noise = noise';     % in case of the confusing dimension problem
+end
 noise_len = size(noise,1);
 speech_len = size(speech,1);
 
