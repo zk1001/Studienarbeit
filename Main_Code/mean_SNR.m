@@ -1,4 +1,4 @@
-function [mean_set, SNR_eff] = mean_SNR(thresh,SNR_set)
+function [mean_set, SNR_eff] = mean_SNR(thresh, SNR_set)
 % this function calculate SegSNR, namely SNR > threshold, ignoring the rest.
 % input: SNR_set (1 or 2 channels)
 % output:mean SNR of respective channel
