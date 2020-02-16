@@ -55,9 +55,7 @@ function hrir = loadHRIR(environment,varargin)
 
 
 % Change this path to an absolute path if you need.
-baseDirectory = './hrir';
-
-
+baseDirectory = 'D:\Stud\Studienarbeit\Code_Main\useful_functions\hrir';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 flipData = false;
@@ -67,7 +65,7 @@ switch environment
     case 'anechoic'
         if nargin == 4
             HRIRset = 'all';
-        elseif nargin == 5;
+        elseif nargin == 5
             HRIRset = varargin{4};
         else
             error(['Wrong number of input arguments for ''' environment '''.'])
@@ -94,7 +92,7 @@ switch environment
         environment = 'office_I';
         if nargin == 2
             HRIRset = 'all';
-        elseif nargin == 3;
+        elseif nargin == 3
             HRIRset = varargin{2};
         else
             error(['Wrong number of input arguments for ''' environment '''.'])
